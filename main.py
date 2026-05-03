@@ -1,7 +1,7 @@
 import telebot
 from telebot import types
 
-# To'g'ri va probelsiz token
+# TOKENNI TO'G'RI VA TIRNOQ ICHIDA YOZING
 TOKEN = '8763501142:AAEo-i-PWgbqgta9Sblbx4iCXepRlB9RY7c'
 
 bot = telebot.TeleBot(TOKEN)
@@ -14,7 +14,7 @@ def start(message):
         types.InlineKeyboardButton("Русский язык 🇷🇺", callback_data='lang_ru'),
         types.InlineKeyboardButton("English 🇺🇸", callback_data='lang_en')
     )
-    bot.send_message(message.chat.id, "Assalomu alaykum! Botimizga xush kelibsiz. Tilni tanlang:", reply_markup=markup)
+    bot.send_message(message.chat.id, "Assalomu alaykum! Tilni tanlang:", reply_markup=markup)
 
 @bot.callback_query_handler(func=lambda call: call.data.startswith('lang_'))
 def language_selection(call):
