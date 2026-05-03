@@ -1,0 +1,96 @@
+import asyncio
+import logging
+import os
+from aiogram import Bot, Dispatcher, types, F
+from aiogram.filters import Command
+from aiogram.utils.keyboard import InlineKeyboardBuilder
+import yt_dlp
+
+# --- BOT SOZLAMALARI ---
+API_TOKEN = "8763501142:AAFHYJbXI_GDx7YGRDjgRiGXFni-bihgedA"
+
+logging.basicConfig(level=logging.INFO)
+bot = Bot(token=API_TOKEN)
+dp = Dispatcher()
+
+# --- MATNLAR LUG'ATI ---
+LANG_TEXTS = {
+    "uz": "Menga Instagram havolasini yuboring, men sizga video yuklab beraman 📥\nYoki musiqa nomini yozing, men uni topaman 🎵",
+    "ru": "Отправьте мне ссылку на Instagram, и я скачаю вам видео 📥\nИли напишите название музыки, я её найду 🎵",
+    "en": "Send me an Instagram link and I will download the video for you 📥\nOr type a song name to find it 🎵"
+}
+
+@dp.message(Command("start"))
+async def cmd_start(message: types.Message):
+    builder = InlineKeyboardBuilder()
+    builder.row(types.InlineKeyboardButton(text="🇺🇿 O'zbek tili", callback_data="l_uz"))
+    builder.row(types.InlineKeyboardButton(text="🇷🇺 Русский язык", callback_data="l_ru"))
+    builder.row(types.InlineKeyboardButton(text="🇺🇸 English", callback_data="l_en"))
+    
+    await message.answer(
+        "Assalomu alaykum! Botimizga xush kelibsiz! ✨\n\n"
+        "Siz bu bot orqali Instagramdan video yuklashingiz va istalgan musiqangizni topishingiz mumkin. 🚀\n\n"
+        "Iltimos, tilni tanlang / Выберите язык / Choose language:",
+        reply_markup=builder.as_markup()
+    )
+
+@dp.callback_query(F.data.startswith("l_"))
+async def set_lang(callback: types.CallbackQuery):
+    lang = callback.data.split("_")[1]
+    await callback.message.edit_text(LANG_TEXTS[lang])
+    await callback.answer()
+
+@dp.message()
+async def main_handler(message: types.Message):
+    text = message.text
+    if "http" in text:
+        wait = await message.answer("Video tahlil qilinmoqda... 🔄")
+        v_name = f"v_{message.from_user.id}.mp4"
+        ydl_opts = {'format': 'best', 'outtmpl': v_name, 'quiet': True}
+        try:
+            with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+                ydl.download([text])
+            video = types.FSInputFile(v_name)
+            await message.answer_video(video, caption="Tayyor! ✅")
+            os.remove(v_name)
+            await wait.delete()
+        except:
+            await message.answer("Xatolik: Videoni yuklab bo'lmadi ❌")
+            if os.path.exists(v_name): os.remove(v_name)
+    else:
+        wait = await message.answer(f"🔍 '{text}' qidirilmoqda...")
+        ydl_opts = {'format': 'bestaudio/best', 'default_search': 'ytsearch5', 'quiet': True}
+        try:
+            with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+                info = ydl.extract_info(f"ytsearch:{text}", download=False)
+            if not info['entries']:
+                await message.answer("Uzur, ma'lumot topilmadi ❌")
+                return
+            builder = InlineKeyboardBuilder()
+            for entry in info['entries'][:5]:
+                builder.row(types.InlineKeyboardButton(text=f"🎵 {entry['title'][:35]}", callback_data=f"m_{entry['id']}"))
+            await message.answer("Variantlardan birini tanlang: 👇", reply_markup=builder.as_markup())
+            await wait.delete()
+        except:
+            await message.answer("Uzur, ma'lumot topilmadi ❌")
+
+@dp.callback_query(F.data.startswith("m_"))
+async def dl_music(callback: types.CallbackQuery):
+    m_id = callback.data.replace("m_", "")
+    url = f"https://www.youtube.com/watch?v={m_id}"
+    await callback.answer("Yuklanmoqda...")
+    a_name = f"m_{callback.from_user.id}.mp3"
+    try:
+        with yt_dlp.YoutubeDL({'format': 'bestaudio/best', 'outtmpl': a_name, 'quiet': True}) as ydl:
+            ydl.download([url])
+        audio = types.FSInputFile(a_name)
+        await callback.message.answer_audio(audio, caption="Musiqa topildi! ✨")
+        os.remove(a_name)
+    except:
+        await callback.message.answer("Yuklashda xato ❌")
+
+async def main():
+    await dp.start_polling(bot)
+
+if __name__ == "__main__":
+    asyncio.run(main())
