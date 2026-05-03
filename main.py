@@ -1,8 +1,8 @@
 import telebot
 from telebot import types
 
-# Yangi va to'g'ri tokeningiz joylandi
-TOKEN = '8763501142:AAEX5-eFMeFxWiBApMbwtffQrq-hgE0d8E0'
+# ENG YANGI VA TO'G'RI TOKENINGIZ
+TOKEN = '8763501142:AAEo-i-PWgbqgta9Sblbx4iCXepRlB9RY7c'
 
 bot = telebot.TeleBot(TOKEN)
 
